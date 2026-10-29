@@ -1,0 +1,12 @@
+# ไฟล์ตั้งค่าที่มีรหัสผ่านจริง
+config/db.php
+.env
+
+# ไฟล์ที่ผู้ใช้อัปโหลด (เก็บแค่ .gitkeep)
+uploads/*
+!uploads/.gitkeep
+
+# ไฟล์ของระบบ / editor
+.DS_Store
+.vscode/
+.idea/
