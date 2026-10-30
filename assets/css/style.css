@@ -1,0 +1,58 @@
+/* BUU Lost & Found — โทนสีเทา-ทองของมหาวิทยาลัยบูรพา */
+:root {
+    --buu-grey: #4a4a4f;
+    --buu-gold: #c9a227;
+    --buu-gold-dark: #a8861c;
+}
+
+body {
+    font-family: "Sarabun", system-ui, -apple-system, "Segoe UI", sans-serif;
+    background-color: #f6f6f7;
+}
+
+.bg-buu {
+    background-color: var(--buu-grey);
+    border-bottom: 3px solid var(--buu-gold);
+}
+
+.btn-gold {
+    background-color: var(--buu-gold);
+    border-color: var(--buu-gold);
+    color: #1f1f1f;
+}
+
+.btn-gold:hover,
+.btn-gold:focus {
+    background-color: var(--buu-gold-dark);
+    border-color: var(--buu-gold-dark);
+    color: #fff;
+}
+
+.item-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.item-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12) !important;
+}
+
+.item-thumb {
+    height: 180px;
+    object-fit: cover;
+}
+
+.item-photo {
+    max-height: 420px;
+    min-height: 240px;
+    object-fit: contain;
+    background-color: #fff;
+}
+
+.item-thumb-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e9e9eb;
+    color: #8a8a90;
+}
