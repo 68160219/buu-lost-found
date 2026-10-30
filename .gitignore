@@ -1,5 +1,6 @@
 # ไฟล์ตั้งค่าที่มีรหัสผ่านจริง
 config/db.php
+config/db.local.php
 .env
 
 # ไฟล์ที่ผู้ใช้อัปโหลด (เก็บแค่ .gitkeep)
