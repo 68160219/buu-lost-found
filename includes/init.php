@@ -10,6 +10,21 @@ session_start();
 // ให้ MySQLi โยน exception เมื่อ query ผิดพลาด แทนการคืนค่า false เงียบๆ
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
+// แสดงข้อความที่อ่านเข้าใจได้แทนหน้า HTTP 500 เปล่าๆ (รายละเอียดเต็มเขียนลง error log ของเซิร์ฟเวอร์)
+set_exception_handler(function ($ex) {
+    error_log((string)$ex);
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: text/html; charset=utf-8');
+    }
+    if ($ex instanceof mysqli_sql_exception && $ex->getCode() === 1146) {   // 1146 = ไม่มีตารางนี้
+        echo 'ฐานข้อมูลยังไม่มีตารางที่หน้านี้ต้องใช้ (' . htmlspecialchars($ex->getMessage(), ENT_QUOTES, 'UTF-8') . ')'
+            . '<br>ถ้าเป็นตาราง lost_items ให้นำเข้าไฟล์ database/add_lost_items.sql ใน phpMyAdmin';
+    } else {
+        echo 'เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง';
+    }
+});
+
 $db_config = __DIR__ . '/../config/db.php';
 if (!file_exists($db_config)) {
     die('ยังไม่มีไฟล์ config/db.php — ก๊อป config/db.example.php เป็น config/db.php แล้วใส่ค่าการเชื่อมต่อของตัวเอง');
@@ -162,13 +177,19 @@ function require_post()
 
 function status_label($status)
 {
-    $labels = ['found' => 'ถูกพบ', 'claimed' => 'รอรับคืน', 'returned' => 'คืนเรียบร้อย'];
+    $labels = [
+        'found' => 'ถูกพบ', 'claimed' => 'รอรับคืน', 'returned' => 'คืนเรียบร้อย',   // items
+        'searching' => 'กำลังตามหา', 'resolved' => 'ได้คืนแล้ว',                    // lost_items
+    ];
     return isset($labels[$status]) ? $labels[$status] : $status;
 }
 
 function status_badge($status)
 {
-    $colors = ['found' => 'success', 'claimed' => 'warning', 'returned' => 'secondary'];
+    $colors = [
+        'found' => 'success', 'claimed' => 'warning', 'returned' => 'secondary',
+        'searching' => 'danger', 'resolved' => 'secondary',
+    ];
     $color = isset($colors[$status]) ? $colors[$status] : 'light';
     return '<span class="badge text-bg-' . $color . '">' . e(status_label($status)) . '</span>';
 }
