@@ -1,5 +1,5 @@
 <?php
-// UC10 ประกาศของฉัน — แสดงเฉพาะประกาศที่ตัวเองโพสต์ และของที่ตัวเองขอรับคืน
+// UC10 ประกาศของฉัน — แสดงเฉพาะประกาศที่ตัวเองโพสต์ (ของที่พบ / ตามหาของหาย) และของที่ตัวเองขอรับคืน
 require __DIR__ . '/includes/init.php';
 require_login();
 
@@ -29,15 +29,59 @@ $stmt->bind_param('ii', $uid, $uid);
 $stmt->execute();
 $my_claims = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
+$stmt = $conn->prepare(
+    'SELECT l.id, l.title, l.lost_date, l.status, c.name AS category_name
+     FROM lost_items l
+     JOIN categories c ON c.id = l.category_id
+     WHERE l.user_id = ?
+     ORDER BY l.created_at DESC, l.id DESC'
+);
+$stmt->bind_param('i', $uid);
+$stmt->execute();
+$my_lost = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
 $page_title = 'ประกาศของฉัน';
 require __DIR__ . '/includes/header.php';
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h1 class="h3 mb-0">ประกาศของฉัน</h1>
-    <a href="item_create.php" class="btn btn-primary">+ โพสต์ของที่พบ</a>
+    <a href="post_new.php" class="btn btn-primary">+ โพสต์ประกาศ</a>
 </div>
 
-<h2 class="h5 mt-4">ของที่ฉันโพสต์ (<?= count($my_posts) ?>)</h2>
+<h2 class="h5 mt-4">ของที่ฉันตามหา (<?= count($my_lost) ?>)</h2>
+<?php if (!$my_lost): ?>
+    <p class="text-secondary">ยังไม่มีประกาศตามหาของหาย</p>
+<?php else: ?>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+            <tr>
+                <th>สิ่งของ</th>
+                <th>หมวดหมู่</th>
+                <th>วันที่หาย</th>
+                <th>สถานะ</th>
+                <th class="text-end">จัดการ</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($my_lost as $l): ?>
+                <tr>
+                    <td><a href="lost_view.php?id=<?= (int)$l['id'] ?>"><?= e($l['title']) ?></a></td>
+                    <td class="small"><?= e($l['category_name']) ?></td>
+                    <td class="small text-nowrap"><?= e(thai_date($l['lost_date'])) ?></td>
+                    <td><?= status_badge($l['status']) ?></td>
+                    <td class="text-end text-nowrap">
+                        <a href="lost_view.php?id=<?= (int)$l['id'] ?>" class="btn btn-sm btn-outline-secondary">ดู</a>
+                        <a href="lost_edit.php?id=<?= (int)$l['id'] ?>" class="btn btn-sm btn-outline-primary">แก้ไข</a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+<?php endif; ?>
+
+<h2 class="h5 mt-4">ของที่ฉันเจอและโพสต์แจ้ง (<?= count($my_posts) ?>)</h2>
 <?php if (!$my_posts): ?>
     <p class="text-secondary">ยังไม่มีประกาศ</p>
 <?php else: ?>

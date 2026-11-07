@@ -10,7 +10,7 @@ if (!is_logged_in()) {
     <div class="row justify-content-center text-center py-5">
         <div class="col-lg-8">
             <h1 class="h2 mb-3">ระบบแจ้งของหาย-ได้คืน มหาวิทยาลัยบูรพา</h1>
-            <p class="lead text-secondary">เจอของหรือทำของหายในคณะ? เข้าสู่ระบบด้วยรหัสนิสิตเพื่อดูประกาศของที่พบภายในคณะของคุณ</p>
+            <p class="lead text-secondary">เจอของหรือทำของหายในคณะ? เข้าสู่ระบบด้วยรหัสนิสิตเพื่อดูประกาศของที่พบ หรือโพสต์ตามหาของหายภายในคณะของคุณ</p>
             <p class="small text-secondary">ระบบแยกประกาศตามคณะจากเลขหลักที่ 3-4 ของรหัสนิสิต เช่น 68<strong>16</strong>0219 จะเห็นเฉพาะประกาศของคณะรหัส 16</p>
             <div class="d-flex justify-content-center gap-2 mt-4">
                 <a href="login.php" class="btn btn-primary btn-lg">เข้าสู่ระบบ</a>
@@ -83,8 +83,10 @@ require __DIR__ . '/includes/header.php';
         <h1 class="h3 mb-1">ประกาศของที่พบในคณะ <span class="badge text-bg-dark align-middle fs-6">รหัสคณะ <?= e($faculty) ?></span></h1>
         <p class="text-secondary mb-0">แสดงเฉพาะของที่คนในคณะเดียวกับคุณโพสต์ไว้ ลองค้นหาดูว่ามีคนเจอของของคุณแล้วหรือยัง</p>
     </div>
-    <a href="item_create.php" class="btn btn-primary">+ โพสต์ของที่พบ</a>
+    <a href="item_create.php" class="btn btn-primary">+ แจ้งของที่พบ</a>
 </div>
+
+<?php require __DIR__ . '/includes/post_tabs.php'; ?>
 
 <form method="get" class="card card-body shadow-sm mb-4">
     <div class="row g-2">

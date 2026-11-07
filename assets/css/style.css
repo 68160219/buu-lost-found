@@ -56,3 +56,21 @@ body {
     background-color: #e9e9eb;
     color: #8a8a90;
 }
+
+/* ประกาศตามหาของหาย: ขอบบนสีแดงให้แยกจากประกาศของที่พบได้ทันที */
+.item-card-lost {
+    border-top: 3px solid var(--bs-danger);
+}
+
+/* การ์ดเลือกประเภทประกาศในหน้า post_new.php */
+.post-choice {
+    border-left: 5px solid transparent;
+}
+
+.post-choice-found {
+    border-left-color: var(--bs-success);
+}
+
+.post-choice-lost {
+    border-left-color: var(--bs-danger);
+}

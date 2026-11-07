@@ -31,8 +31,9 @@ function nav_active($page, $current_page)
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto">
                 <?php if (is_logged_in()): ?>
-                    <li class="nav-item"><a class="nav-link<?= nav_active('index.php', $current_page) ?>" href="index.php">ประกาศในคณะ</a></li>
-                    <li class="nav-item"><a class="nav-link<?= nav_active('item_create.php', $current_page) ?>" href="item_create.php">โพสต์ของที่พบ</a></li>
+                    <li class="nav-item"><a class="nav-link<?= nav_active('index.php', $current_page) ?>" href="index.php">ของที่พบ</a></li>
+                    <li class="nav-item"><a class="nav-link<?= nav_active('lost_index.php', $current_page) ?>" href="lost_index.php">ตามหาของหาย</a></li>
+                    <li class="nav-item"><a class="nav-link<?= nav_active('post_new.php', $current_page) ?>" href="post_new.php">โพสต์ประกาศ</a></li>
                     <li class="nav-item"><a class="nav-link<?= nav_active('my_items.php', $current_page) ?>" href="my_items.php">ประกาศของฉัน</a></li>
                 <?php endif; ?>
             </ul>
