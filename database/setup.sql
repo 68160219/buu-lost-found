@@ -6,6 +6,7 @@
 SET NAMES utf8mb4;
 
 -- ลบตารางเก่า (ลบลูกก่อนแม่ เพราะติด Foreign Key)
+DROP TABLE IF EXISTS lost_items;
 DROP TABLE IF EXISTS items;
 DROP TABLE IF EXISTS pickup_points;
 DROP TABLE IF EXISTS categories;
@@ -72,6 +73,30 @@ CREATE TABLE items (
 CREATE INDEX idx_items_status ON items(status);
 CREATE INDEX idx_items_title  ON items(title);
 
+-- ---------------------------------------------------------
+-- 5) lost_items : ประกาศตามหาของหาย (โพสต์โดยเจ้าของของ)
+--    แยกจาก items เพราะไม่มีวิธีคืน/จุดรับคืน/การขอรับคืน และใช้สถานะคนละชุด
+-- ---------------------------------------------------------
+CREATE TABLE lost_items (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  user_id       INT          NOT NULL,             -- เจ้าของของที่ทำหาย (คนโพสต์)
+  category_id   INT          NOT NULL,
+  title         VARCHAR(150) NOT NULL,             -- ชื่อสิ่งของที่หาย
+  description   TEXT         NULL,
+  lost_location VARCHAR(150) NOT NULL,             -- หายที่ไหน (โดยประมาณ)
+  lost_date     DATE         NOT NULL,             -- หายเมื่อวันที่
+  image_path    VARCHAR(255) NULL,                 -- รูปตัวอย่างของ (ถ้ามี)
+  status        ENUM('searching','resolved') NOT NULL DEFAULT 'searching',
+  resolved_at   DATETIME     NULL,                 -- วันที่เจ้าของกด "ได้ของคืนแล้ว"
+  created_at    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_lost_user     FOREIGN KEY (user_id)     REFERENCES users(id),
+  CONSTRAINT fk_lost_category FOREIGN KEY (category_id) REFERENCES categories(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_lost_status ON lost_items(status);
+CREATE INDEX idx_lost_title  ON lost_items(title);
+
 -- =========================================================
 --  ข้อมูลเริ่มต้น
 -- =========================================================
@@ -99,3 +124,7 @@ INSERT INTO users (student_id, password_hash, full_name, phone, line_id) VALUES
 INSERT INTO items (user_id, category_id, title, description, found_location, found_date, return_method, pickup_point_id) VALUES
   (1, 2, 'กระเป๋าสตางค์สีดำ', 'หนังสีดำ มีสายคล้อง', 'โรงอาหารกลาง', '2026-10-27', 'contact', NULL),
   (2, 4, 'พวงกุญแจรถมอเตอร์ไซค์', 'มีพวงกุญแจรูปแมว', 'ลานจอดรถตึก IF', '2026-10-28', 'pickup', 1);
+
+-- ตัวอย่างประกาศตามหาของหาย 1 รายการ
+INSERT INTO lost_items (user_id, category_id, title, description, lost_location, lost_date) VALUES
+  (2, 1, 'บัตรนิสิต', 'ใส่ซองใสสีฟ้า', 'ระหว่างตึก IF ถึงโรงอาหารกลาง', '2026-10-28');
