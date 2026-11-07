@@ -1,16 +1,6 @@
 <?php
 // ฟอร์มประกาศที่ใช้ร่วมกันระหว่าง item_create.php และ item_edit.php
 // ต้องมีตัวแปร: $item, $errors, $categories, $pickup_points, $submit_label
-
-function field_class($errors, $name)
-{
-    return isset($errors[$name]) ? ' is-invalid' : '';
-}
-
-function field_error($errors, $name)
-{
-    return isset($errors[$name]) ? '<div class="invalid-feedback">' . e($errors[$name]) . '</div>' : '';
-}
 ?>
 <form method="post" enctype="multipart/form-data" class="card card-body shadow-sm" novalidate>
     <?= csrf_field() ?>

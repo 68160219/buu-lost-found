@@ -1,20 +1,21 @@
 <?php
-// ฟังก์ชันที่ใช้ร่วมกันระหว่างหน้าโพสต์และหน้าแก้ไขประกาศ
+// ฟังก์ชันที่ใช้ร่วมกันระหว่างหน้าโพสต์และหน้าแก้ไขประกาศ (ทั้งของที่พบ และตามหาของหาย)
 
 const MAX_IMAGE_BYTES = 2097152; // 2 MB
 
-// อ่านและตรวจค่าจากฟอร์มประกาศ คืนค่า [ข้อมูล, รายการ error ตามชื่อช่อง]
-function read_item_form(array $categories, array $pickup_points)
+function field_class($errors, $name)
 {
-    $data = [
-        'title'           => trim(post('title')),
-        'category_id'     => (int)post('category_id'),
-        'description'     => trim(post('description')),
-        'found_location'  => trim(post('found_location')),
-        'found_date'      => trim(post('found_date')),
-        'return_method'   => post('return_method'),
-        'pickup_point_id' => (int)post('pickup_point_id'),
-    ];
+    return isset($errors[$name]) ? ' is-invalid' : '';
+}
+
+function field_error($errors, $name)
+{
+    return isset($errors[$name]) ? '<div class="invalid-feedback">' . e($errors[$name]) . '</div>' : '';
+}
+
+// ตรวจช่องที่ประกาศทั้ง 2 แบบมีเหมือนกัน: ชื่อสิ่งของ หมวดหมู่ สถานที่ วันที่
+function validate_common_fields(array $data, array $categories, $location_key, $date_key)
+{
     $errors = [];
 
     if ($data['title'] === '') {
@@ -28,18 +29,48 @@ function read_item_form(array $categories, array $pickup_points)
         $errors['category_id'] = 'กรุณาเลือกหมวดหมู่';
     }
 
-    if ($data['found_location'] === '') {
-        $errors['found_location'] = 'กรุณากรอกสถานที่ที่พบ';
-    } elseif (text_length($data['found_location']) > 150) {
-        $errors['found_location'] = 'สถานที่ต้องไม่เกิน 150 ตัวอักษร';
+    if ($data[$location_key] === '') {
+        $errors[$location_key] = 'กรุณากรอกสถานที่';
+    } elseif (text_length($data[$location_key]) > 150) {
+        $errors[$location_key] = 'สถานที่ต้องไม่เกิน 150 ตัวอักษร';
     }
 
-    $date = DateTime::createFromFormat('Y-m-d', $data['found_date']);
-    if (!$date || $date->format('Y-m-d') !== $data['found_date']) {
-        $errors['found_date'] = 'กรุณาเลือกวันที่พบ';
-    } elseif ($data['found_date'] > date('Y-m-d')) {
-        $errors['found_date'] = 'วันที่พบต้องไม่เป็นวันในอนาคต';
+    $date = DateTime::createFromFormat('Y-m-d', $data[$date_key]);
+    if (!$date || $date->format('Y-m-d') !== $data[$date_key]) {
+        $errors[$date_key] = 'กรุณาเลือกวันที่';
+    } elseif ($data[$date_key] > date('Y-m-d')) {
+        $errors[$date_key] = 'วันที่ต้องไม่เป็นวันในอนาคต';
     }
+
+    return $errors;
+}
+
+// อ่านและตรวจค่าจากฟอร์มประกาศตามหาของหาย คืนค่า [ข้อมูล, รายการ error ตามชื่อช่อง]
+function read_lost_form(array $categories)
+{
+    $data = [
+        'title'         => trim(post('title')),
+        'category_id'   => (int)post('category_id'),
+        'description'   => trim(post('description')),
+        'lost_location' => trim(post('lost_location')),
+        'lost_date'     => trim(post('lost_date')),
+    ];
+    return [$data, validate_common_fields($data, $categories, 'lost_location', 'lost_date')];
+}
+
+// อ่านและตรวจค่าจากฟอร์มประกาศของที่พบ คืนค่า [ข้อมูล, รายการ error ตามชื่อช่อง]
+function read_item_form(array $categories, array $pickup_points)
+{
+    $data = [
+        'title'           => trim(post('title')),
+        'category_id'     => (int)post('category_id'),
+        'description'     => trim(post('description')),
+        'found_location'  => trim(post('found_location')),
+        'found_date'      => trim(post('found_date')),
+        'return_method'   => post('return_method'),
+        'pickup_point_id' => (int)post('pickup_point_id'),
+    ];
+    $errors = validate_common_fields($data, $categories, 'found_location', 'found_date');
 
     if ($data['return_method'] === 'pickup') {
         $pickup_ids = array_map('intval', array_column($pickup_points, 'id'));
