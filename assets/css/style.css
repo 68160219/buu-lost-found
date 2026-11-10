@@ -62,6 +62,42 @@ body {
     border-top: 3px solid var(--bs-danger);
 }
 
+/* แผงสถิติหน้าแรก */
+.stat-card {
+    border-left: 5px solid var(--buu-gold);
+}
+
+.stat-returned { border-left-color: var(--buu-gold); }
+.stat-found    { border-left-color: var(--bs-success); }
+.stat-lost     { border-left-color: var(--bs-danger); }
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+.stat-cat-name {
+    width: 40%;
+    max-width: 260px;
+}
+
+.stat-cat-count {
+    width: 2.5rem;
+}
+
+.stat-bar-track {
+    height: 0.5rem;
+    background-color: #e9e9eb;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.stat-bar {
+    height: 100%;
+    background-color: var(--buu-gold);
+}
+
 /* การ์ดเลือกประเภทประกาศในหน้า post_new.php */
 .post-choice {
     border-left: 5px solid transparent;

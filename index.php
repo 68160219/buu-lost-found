@@ -1,9 +1,12 @@
 <?php
-// UC03 หน้าแรก: แสดงประกาศของคณะตัวเอง ค้นหาจากชื่อของ/สถานที่ และกรองตามหมวดหมู่ จุดรับคืน สถานะ
+// UC03 หน้าแรก: สถิติ + ประกาศของที่พบในคณะตัวเอง ค้นหาจากชื่อของ/สถานที่ และกรองตามหมวดหมู่ จุดรับคืน สถานะ
 require __DIR__ . '/includes/init.php';
+require __DIR__ . '/includes/matching.php';
 
-// ผู้เยี่ยมชมยังไม่รู้ว่าอยู่คณะไหน จึงเห็นแค่หน้าแนะนำระบบ
+// ผู้เยี่ยมชมยังไม่รู้ว่าอยู่คณะไหน จึงเห็นแค่หน้าแนะนำระบบกับสถิติรวมทั้งมหาวิทยาลัย
 if (!is_logged_in()) {
+    $stats = get_stats($conn);
+    $stats_scope = 'ทั้งมหาวิทยาลัย';
     $page_title = 'ระบบแจ้งของหาย-ได้คืน';
     require __DIR__ . '/includes/header.php';
     ?>
@@ -18,6 +21,7 @@ if (!is_logged_in()) {
             </div>
         </div>
     </div>
+    <?php require __DIR__ . '/includes/stats_panel.php'; ?>
     <?php
     require __DIR__ . '/includes/footer.php';
     exit;
@@ -32,8 +36,8 @@ $category_id = isset($_GET['category']) ? (int)$_GET['category'] : 0;
 $pickup_id = isset($_GET['pickup']) ? (int)$_GET['pickup'] : 0;
 $status = isset($_GET['status']) && in_array($_GET['status'], ['found', 'claimed', 'returned'], true) ? $_GET['status'] : '';
 
-// ประกอบเงื่อนไข WHERE แบบ Prepared Statement — เงื่อนไขคณะใส่เสมอ ที่เหลือตามตัวกรองที่เลือก
-$where = ['SUBSTRING(u.student_id, 3, 2) = ?'];
+// ประกอบเงื่อนไข WHERE แบบ Prepared Statement — ประเภทประกาศและคณะใส่เสมอ ที่เหลือตามตัวกรองที่เลือก
+$where = ["i.post_type = 'found'", 'SUBSTRING(u.student_id, 3, 2) = ?'];
 $types = 's';
 $params = [$faculty];
 
@@ -62,9 +66,9 @@ if ($status !== '') {
 
 $sql = 'SELECT i.id, i.title, i.found_location, i.found_date, i.image_path, i.status, i.return_method,
                c.name AS category_name
-        FROM items i
-        JOIN categories c ON c.id = i.category_id
-        JOIN users u ON u.id = i.user_id
+        FROM lf_items i
+        JOIN lf_categories c ON c.id = i.category_id
+        JOIN lf_users u ON u.id = i.user_id
         WHERE ' . implode(' AND ', $where) . '
         ORDER BY i.created_at DESC, i.id DESC';
 
@@ -74,6 +78,10 @@ $stmt->execute();
 $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 $is_filtered = $q !== '' || $category_id || $pickup_id || $status !== '';
+
+$stats = get_stats($conn, $faculty);
+$stats_scope = 'ในคณะ';
+$stats_link_categories = true;
 
 $page_title = 'ประกาศของที่พบในคณะ';
 require __DIR__ . '/includes/header.php';
@@ -86,6 +94,7 @@ require __DIR__ . '/includes/header.php';
     <a href="item_create.php" class="btn btn-primary">+ แจ้งของที่พบ</a>
 </div>
 
+<?php require __DIR__ . '/includes/stats_panel.php'; ?>
 <?php require __DIR__ . '/includes/post_tabs.php'; ?>
 
 <form method="get" class="card card-body shadow-sm mb-4">

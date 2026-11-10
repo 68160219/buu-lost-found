@@ -15,3 +15,7 @@ if ($conn->connect_error) {
 }
 
 $conn->set_charset('utf8mb4');
+
+// ยืนยันอีเมล: true = โหมดสาธิต แสดงลิงก์ยืนยันบนหน้าจอ (ค่าเริ่มต้น เพราะ Angsila อาจส่งอีเมลไม่ได้)
+//              false = ส่งลิงก์ไปที่ รหัสนิสิต@go.buu.ac.th ด้วย mail() จริง
+define('VERIFY_DEMO_MODE', true);

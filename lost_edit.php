@@ -7,7 +7,11 @@ require_login();
 $uid = current_user_id();
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-$stmt = $conn->prepare('SELECT * FROM lost_items WHERE id = ? AND user_id = ?');
+$stmt = $conn->prepare(
+    "SELECT id, category_id, title, description, image_path,
+            found_location AS lost_location, found_date AS lost_date
+     FROM lf_items WHERE id = ? AND user_id = ? AND post_type = 'lost'"
+);
 $stmt->bind_param('ii', $id, $uid);
 $stmt->execute();
 $lost = $stmt->get_result()->fetch_assoc();
@@ -38,9 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description = $lost['description'] === '' ? null : $lost['description'];
 
         $stmt = $conn->prepare(
-            'UPDATE lost_items
-             SET category_id = ?, title = ?, description = ?, lost_location = ?, lost_date = ?, image_path = ?
-             WHERE id = ? AND user_id = ?'
+            "UPDATE lf_items
+             SET category_id = ?, title = ?, description = ?, found_location = ?, found_date = ?, image_path = ?
+             WHERE id = ? AND user_id = ? AND post_type = 'lost'"
         );
         $stmt->bind_param('isssssii', $lost['category_id'], $lost['title'], $description,
             $lost['lost_location'], $lost['lost_date'], $image_path, $id, $uid);

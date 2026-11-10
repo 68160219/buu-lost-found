@@ -1,5 +1,5 @@
 <?php
-// รายการประกาศตามหาของหายของคณะตัวเอง ค้นหาจากชื่อของ/สถานที่ และกรองตามหมวดหมู่ สถานะ
+// รายการประกาศตามหาของหาย (lf_items.post_type = 'lost') ของคณะตัวเอง ค้นหาจากชื่อของ/สถานที่ และกรองตามหมวดหมู่ สถานะ
 require __DIR__ . '/includes/init.php';
 require_login();
 
@@ -8,16 +8,16 @@ $categories = fetch_categories($conn);
 
 $q = isset($_GET['q']) && is_string($_GET['q']) ? trim($_GET['q']) : '';
 $category_id = isset($_GET['category']) ? (int)$_GET['category'] : 0;
-$status = isset($_GET['status']) && in_array($_GET['status'], ['searching', 'resolved'], true) ? $_GET['status'] : '';
+$status = isset($_GET['status']) && in_array($_GET['status'], ['found', 'claimed', 'returned'], true) ? $_GET['status'] : '';
 
 // ประกอบเงื่อนไข WHERE แบบ Prepared Statement — เงื่อนไขคณะใส่เสมอ ที่เหลือตามตัวกรองที่เลือก
-$where = ['SUBSTRING(u.student_id, 3, 2) = ?'];
+$where = ["l.post_type = 'lost'", 'SUBSTRING(u.student_id, 3, 2) = ?'];
 $types = 's';
 $params = [$faculty];
 
 if ($q !== '') {
     $like = '%' . addcslashes($q, '%_\\') . '%';
-    $where[] = '(l.title LIKE ? OR l.lost_location LIKE ?)';
+    $where[] = '(l.title LIKE ? OR l.found_location LIKE ?)';
     $types .= 'ss';
     $params[] = $like;
     $params[] = $like;
@@ -33,11 +33,11 @@ if ($status !== '') {
     $params[] = $status;
 }
 
-$sql = 'SELECT l.id, l.title, l.lost_location, l.lost_date, l.image_path, l.status,
+$sql = 'SELECT l.id, l.title, l.found_location, l.found_date, l.image_path, l.status,
                c.name AS category_name
-        FROM lost_items l
-        JOIN categories c ON c.id = l.category_id
-        JOIN users u ON u.id = l.user_id
+        FROM lf_items l
+        JOIN lf_categories c ON c.id = l.category_id
+        JOIN lf_users u ON u.id = l.user_id
         WHERE ' . implode(' AND ', $where) . '
         ORDER BY l.created_at DESC, l.id DESC';
 
@@ -80,8 +80,8 @@ require __DIR__ . '/includes/header.php';
             <label for="status" class="visually-hidden">สถานะ</label>
             <select id="status" name="status" class="form-select">
                 <option value="">ทุกสถานะ</option>
-                <?php foreach (['searching', 'resolved'] as $s): ?>
-                    <option value="<?= $s ?>"<?= $status === $s ? ' selected' : '' ?>><?= e(status_label($s)) ?></option>
+                <?php foreach (['found', 'claimed', 'returned'] as $s): ?>
+                    <option value="<?= $s ?>"<?= $status === $s ? ' selected' : '' ?>><?= e(status_label($s, 'lost')) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
@@ -112,11 +112,11 @@ require __DIR__ . '/includes/header.php';
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
                             <h2 class="h6 card-title mb-0"><?= e($lost['title']) ?></h2>
-                            <?= status_badge($lost['status']) ?>
+                            <?= status_badge($lost['status'], 'lost') ?>
                         </div>
                         <div class="small text-secondary"><?= e($lost['category_name']) ?></div>
-                        <div class="small mt-2">หายที่: <?= e($lost['lost_location']) ?></div>
-                        <div class="small">วันที่: <?= e(thai_date($lost['lost_date'])) ?></div>
+                        <div class="small mt-2">หายที่: <?= e($lost['found_location']) ?></div>
+                        <div class="small">วันที่: <?= e(thai_date($lost['found_date'])) ?></div>
                     </div>
                 </a>
             </div>

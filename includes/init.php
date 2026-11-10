@@ -19,7 +19,7 @@ set_exception_handler(function ($ex) {
     }
     if ($ex instanceof mysqli_sql_exception && $ex->getCode() === 1146) {   // 1146 = ไม่มีตารางนี้
         echo 'ฐานข้อมูลยังไม่มีตารางที่หน้านี้ต้องใช้ (' . htmlspecialchars($ex->getMessage(), ENT_QUOTES, 'UTF-8') . ')'
-            . '<br>ถ้าเป็นตาราง lost_items ให้นำเข้าไฟล์ database/add_lost_items.sql ใน phpMyAdmin';
+            . '<br>ให้นำเข้าไฟล์ database/setup.sql (v2 ที่ใช้ตาราง lf_) ใน phpMyAdmin';
     } else {
         echo 'เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง';
     }
@@ -33,6 +33,12 @@ try {
     require $db_config;
 } catch (mysqli_sql_exception $ex) {
     die('เชื่อมต่อฐานข้อมูลไม่สำเร็จ ตรวจค่า host, user, password และชื่อฐานข้อมูลใน config/db.php');
+}
+
+// โหมดสาธิตการยืนยันอีเมล: แสดงลิงก์ยืนยันบนหน้าจอแทนการส่งอีเมล (Angsila อาจส่งอีเมลไม่ได้)
+// ตั้ง define('VERIFY_DEMO_MODE', false); ใน config/db.php เมื่อเซิร์ฟเวอร์ส่งอีเมลได้จริง
+if (!defined('VERIFY_DEMO_MODE')) {
+    define('VERIFY_DEMO_MODE', true);
 }
 
 // ---------------------------------------------------------
@@ -175,23 +181,31 @@ function require_post()
 // การแสดงผล
 // ---------------------------------------------------------
 
-function status_label($status)
+// สถานะในฐานข้อมูลใช้ชุดเดียวกันทั้ง 2 แบบประกาศ แต่แสดงข้อความต่างกันตาม post_type
+function status_label($status, $post_type = 'found')
 {
     $labels = [
-        'found' => 'ถูกพบ', 'claimed' => 'รอรับคืน', 'returned' => 'คืนเรียบร้อย',   // items
-        'searching' => 'กำลังตามหา', 'resolved' => 'ได้คืนแล้ว',                    // lost_items
+        'found' => ['found' => 'ถูกพบ', 'claimed' => 'รอรับคืน', 'returned' => 'คืนเรียบร้อย'],
+        'lost'  => ['found' => 'กำลังตามหา', 'claimed' => 'มีคนแจ้งว่าเจอ', 'returned' => 'ได้คืนแล้ว'],
     ];
-    return isset($labels[$status]) ? $labels[$status] : $status;
+    $set = isset($labels[$post_type]) ? $labels[$post_type] : $labels['found'];
+    return isset($set[$status]) ? $set[$status] : $status;
 }
 
-function status_badge($status)
+function status_badge($status, $post_type = 'found')
 {
-    $colors = [
-        'found' => 'success', 'claimed' => 'warning', 'returned' => 'secondary',
-        'searching' => 'danger', 'resolved' => 'secondary',
-    ];
+    $colors = ['found' => 'success', 'claimed' => 'warning', 'returned' => 'secondary'];
     $color = isset($colors[$status]) ? $colors[$status] : 'light';
-    return '<span class="badge text-bg-' . $color . '">' . e(status_label($status)) . '</span>';
+    if ($post_type === 'lost' && $status === 'found') {
+        $color = 'danger';
+    }
+    return '<span class="badge text-bg-' . $color . '">' . e(status_label($status, $post_type)) . '</span>';
+}
+
+// หน้ารายละเอียดของประกาศแต่ละแบบ
+function view_url($post_type, $id)
+{
+    return ($post_type === 'lost' ? 'lost_view.php' : 'item_view.php') . '?id=' . (int)$id;
 }
 
 function thai_date($date)
@@ -223,10 +237,10 @@ function not_found($message = 'ไม่พบประกาศที่ต้�
 
 function fetch_categories(mysqli $conn)
 {
-    return $conn->query('SELECT id, name FROM categories ORDER BY id')->fetch_all(MYSQLI_ASSOC);
+    return $conn->query('SELECT id, name FROM lf_categories ORDER BY id')->fetch_all(MYSQLI_ASSOC);
 }
 
 function fetch_pickup_points(mysqli $conn)
 {
-    return $conn->query('SELECT id, name, description FROM pickup_points ORDER BY id')->fetch_all(MYSQLI_ASSOC);
+    return $conn->query('SELECT id, name, description FROM lf_pickup_points ORDER BY id')->fetch_all(MYSQLI_ASSOC);
 }

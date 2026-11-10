@@ -37,9 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description = $item['description'] === '' ? null : $item['description'];
 
         $stmt = $conn->prepare(
-            'INSERT INTO items (user_id, category_id, title, description, found_location, found_date,
-                                image_path, return_method, pickup_point_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            "INSERT INTO lf_items (post_type, user_id, category_id, title, description, found_location, found_date,
+                                   image_path, return_method, pickup_point_id)
+             VALUES ('found', ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
         $stmt->bind_param('iissssssi', $uid, $item['category_id'], $item['title'], $description,
             $item['found_location'], $item['found_date'], $image_path, $item['return_method'], $item['pickup_point_id']);

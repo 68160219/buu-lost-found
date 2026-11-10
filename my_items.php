@@ -1,44 +1,87 @@
 <?php
-// UC10 ประกาศของฉัน — แสดงเฉพาะประกาศที่ตัวเองโพสต์ (ของที่พบ / ตามหาของหาย) และของที่ตัวเองขอรับคืน
+// UC10 ประกาศของฉัน — แสดงเฉพาะประกาศที่ตัวเองโพสต์ (ตามหาของหาย / ของที่พบ)
+// และประกาศของคนอื่นที่ตัวเองกดขอรับคืนหรือแจ้งว่าเจอ
 require __DIR__ . '/includes/init.php';
 require_login();
 
 $uid = current_user_id();
 
+// ประกาศที่ฉันโพสต์ ทั้ง 2 แบบ แล้วแยกตาม post_type
 $stmt = $conn->prepare(
-    'SELECT i.id, i.title, i.found_date, i.status, c.name AS category_name,
+    'SELECT i.id, i.post_type, i.title, i.found_date, i.status, c.name AS category_name,
             cl.full_name AS claimer_name, cl.student_id AS claimer_student_id
-     FROM items i
-     JOIN categories c ON c.id = i.category_id
-     LEFT JOIN users cl ON cl.id = i.claimed_by
+     FROM lf_items i
+     JOIN lf_categories c ON c.id = i.category_id
+     LEFT JOIN lf_users cl ON cl.id = i.claimed_by
      WHERE i.user_id = ?
      ORDER BY i.created_at DESC, i.id DESC'
 );
 $stmt->bind_param('i', $uid);
 $stmt->execute();
-$my_posts = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$my_lost = [];
+$my_posts = [];
+foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+    if ($row['post_type'] === 'lost') {
+        $my_lost[] = $row;
+    } else {
+        $my_posts[] = $row;
+    }
+}
 
+// ของที่พบที่ฉันขอรับคืน / ได้รับคืน และประกาศตามหาที่ฉันแจ้งว่าเจอ
 $stmt = $conn->prepare(
-    'SELECT i.id, i.title, i.status, i.returned_at, f.full_name AS finder_name
-     FROM items i
-     JOIN users f ON f.id = i.user_id
-     WHERE i.claimed_by = ? OR i.returned_to = ?
-     ORDER BY i.created_at DESC, i.id DESC'
+    "SELECT i.id, i.post_type, i.title, i.status, i.returned_at, p.full_name AS poster_name
+     FROM lf_items i
+     JOIN lf_users p ON p.id = i.user_id
+     WHERE (i.post_type = 'found' AND (i.claimed_by = ? OR i.returned_to = ?))
+        OR (i.post_type = 'lost' AND i.claimed_by = ?)
+     ORDER BY i.created_at DESC, i.id DESC"
 );
-$stmt->bind_param('ii', $uid, $uid);
+$stmt->bind_param('iii', $uid, $uid, $uid);
 $stmt->execute();
 $my_claims = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-$stmt = $conn->prepare(
-    'SELECT l.id, l.title, l.lost_date, l.status, c.name AS category_name
-     FROM lost_items l
-     JOIN categories c ON c.id = l.category_id
-     WHERE l.user_id = ?
-     ORDER BY l.created_at DESC, l.id DESC'
-);
-$stmt->bind_param('i', $uid);
-$stmt->execute();
-$my_lost = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+// ตารางประกาศที่ฉันโพสต์ ใช้ร่วมกันทั้ง 2 แบบ
+function render_my_posts(array $rows, $post_type)
+{
+    $is_lost = $post_type === 'lost';
+    ?>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+            <tr>
+                <th>สิ่งของ</th>
+                <th>หมวดหมู่</th>
+                <th><?= $is_lost ? 'วันที่หาย' : 'วันที่พบ' ?></th>
+                <th>สถานะ</th>
+                <th class="text-end">จัดการ</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($rows as $p): ?>
+                <tr>
+                    <td>
+                        <a href="<?= e(view_url($post_type, $p['id'])) ?>"><?= e($p['title']) ?></a>
+                        <?php if ($p['status'] === 'claimed'): ?>
+                            <div class="small text-warning-emphasis">
+                                <?= $is_lost ? 'ผู้ที่แจ้งว่าเจอ' : 'ผู้ขอรับ' ?>: <?= e($p['claimer_name']) ?> (<?= e($p['claimer_student_id']) ?>) — รอคุณยืนยัน
+                            </div>
+                        <?php endif; ?>
+                    </td>
+                    <td class="small"><?= e($p['category_name']) ?></td>
+                    <td class="small text-nowrap"><?= e(thai_date($p['found_date'])) ?></td>
+                    <td><?= status_badge($p['status'], $post_type) ?></td>
+                    <td class="text-end text-nowrap">
+                        <a href="<?= e(view_url($post_type, $p['id'])) ?>" class="btn btn-sm btn-outline-secondary">ดู</a>
+                        <a href="<?= $is_lost ? 'lost_edit.php' : 'item_edit.php' ?>?id=<?= (int)$p['id'] ?>" class="btn btn-sm btn-outline-primary">แก้ไข</a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php
+}
 
 $page_title = 'ประกาศของฉัน';
 require __DIR__ . '/includes/header.php';
@@ -52,88 +95,31 @@ require __DIR__ . '/includes/header.php';
 <?php if (!$my_lost): ?>
     <p class="text-secondary">ยังไม่มีประกาศตามหาของหาย</p>
 <?php else: ?>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead>
-            <tr>
-                <th>สิ่งของ</th>
-                <th>หมวดหมู่</th>
-                <th>วันที่หาย</th>
-                <th>สถานะ</th>
-                <th class="text-end">จัดการ</th>
-            </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($my_lost as $l): ?>
-                <tr>
-                    <td><a href="lost_view.php?id=<?= (int)$l['id'] ?>"><?= e($l['title']) ?></a></td>
-                    <td class="small"><?= e($l['category_name']) ?></td>
-                    <td class="small text-nowrap"><?= e(thai_date($l['lost_date'])) ?></td>
-                    <td><?= status_badge($l['status']) ?></td>
-                    <td class="text-end text-nowrap">
-                        <a href="lost_view.php?id=<?= (int)$l['id'] ?>" class="btn btn-sm btn-outline-secondary">ดู</a>
-                        <a href="lost_edit.php?id=<?= (int)$l['id'] ?>" class="btn btn-sm btn-outline-primary">แก้ไข</a>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
+    <?php render_my_posts($my_lost, 'lost'); ?>
 <?php endif; ?>
 
 <h2 class="h5 mt-4">ของที่ฉันเจอและโพสต์แจ้ง (<?= count($my_posts) ?>)</h2>
 <?php if (!$my_posts): ?>
     <p class="text-secondary">ยังไม่มีประกาศ</p>
 <?php else: ?>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead>
-            <tr>
-                <th>สิ่งของ</th>
-                <th>หมวดหมู่</th>
-                <th>วันที่พบ</th>
-                <th>สถานะ</th>
-                <th class="text-end">จัดการ</th>
-            </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($my_posts as $p): ?>
-                <tr>
-                    <td>
-                        <a href="item_view.php?id=<?= (int)$p['id'] ?>"><?= e($p['title']) ?></a>
-                        <?php if ($p['status'] === 'claimed'): ?>
-                            <div class="small text-warning-emphasis">ผู้ขอรับ: <?= e($p['claimer_name']) ?> (<?= e($p['claimer_student_id']) ?>) — รอคุณยืนยัน</div>
-                        <?php endif; ?>
-                    </td>
-                    <td class="small"><?= e($p['category_name']) ?></td>
-                    <td class="small text-nowrap"><?= e(thai_date($p['found_date'])) ?></td>
-                    <td><?= status_badge($p['status']) ?></td>
-                    <td class="text-end text-nowrap">
-                        <a href="item_view.php?id=<?= (int)$p['id'] ?>" class="btn btn-sm btn-outline-secondary">ดู</a>
-                        <a href="item_edit.php?id=<?= (int)$p['id'] ?>" class="btn btn-sm btn-outline-primary">แก้ไข</a>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
+    <?php render_my_posts($my_posts, 'found'); ?>
 <?php endif; ?>
 
-<h2 class="h5 mt-4">ของที่ฉันขอรับคืน (<?= count($my_claims) ?>)</h2>
+<h2 class="h5 mt-4">ของที่ฉันขอรับคืน / แจ้งว่าเจอ (<?= count($my_claims) ?>)</h2>
 <?php if (!$my_claims): ?>
-    <p class="text-secondary">ยังไม่มีคำขอรับคืน</p>
+    <p class="text-secondary">ยังไม่มีรายการ</p>
 <?php else: ?>
     <ul class="list-group">
         <?php foreach ($my_claims as $c): ?>
             <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
                 <div>
-                    <a href="item_view.php?id=<?= (int)$c['id'] ?>"><?= e($c['title']) ?></a>
+                    <a href="<?= e(view_url($c['post_type'], $c['id'])) ?>"><?= e($c['title']) ?></a>
                     <div class="small text-secondary">
-                        ผู้โพสต์: <?= e($c['finder_name']) ?>
-                        <?= $c['status'] === 'returned' && $c['returned_at'] ? ' · รับคืนเมื่อ ' . e(thai_datetime($c['returned_at'])) : '' ?>
+                        <?= $c['post_type'] === 'lost' ? 'ฉันแจ้งว่าเจอ · เจ้าของ' : 'ฉันขอรับคืน · ผู้โพสต์' ?>: <?= e($c['poster_name']) ?>
+                        <?= $c['status'] === 'returned' && $c['returned_at'] ? ' · คืนเมื่อ ' . e(thai_datetime($c['returned_at'])) : '' ?>
                     </div>
                 </div>
-                <?= status_badge($c['status']) ?>
+                <?= status_badge($c['status'], $c['post_type']) ?>
             </li>
         <?php endforeach; ?>
     </ul>

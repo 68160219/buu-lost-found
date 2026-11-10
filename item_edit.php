@@ -7,7 +7,7 @@ require_login();
 $uid = current_user_id();
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-$stmt = $conn->prepare('SELECT * FROM items WHERE id = ? AND user_id = ?');
+$stmt = $conn->prepare("SELECT * FROM lf_items WHERE id = ? AND user_id = ? AND post_type = 'found'");
 $stmt->bind_param('ii', $id, $uid);
 $stmt->execute();
 $item = $stmt->get_result()->fetch_assoc();
@@ -39,10 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description = $item['description'] === '' ? null : $item['description'];
 
         $stmt = $conn->prepare(
-            'UPDATE items
+            "UPDATE lf_items
              SET category_id = ?, title = ?, description = ?, found_location = ?, found_date = ?,
                  image_path = ?, return_method = ?, pickup_point_id = ?
-             WHERE id = ? AND user_id = ?'
+             WHERE id = ? AND user_id = ? AND post_type = 'found'"
         );
         $stmt->bind_param('issssssiii', $item['category_id'], $item['title'], $description,
             $item['found_location'], $item['found_date'], $image_path, $item['return_method'],

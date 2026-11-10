@@ -1,5 +1,6 @@
 <?php
-// โพสต์ประกาศตามหาของหาย (ตัวเลือกที่ 2) — user_id มาจาก Session
+// โพสต์ประกาศตามหาของหาย (ตัวเลือกที่ 2) — บันทึกลง lf_items ด้วย post_type = 'lost', user_id มาจาก Session
+// ช่อง "หายที่ไหน / วันที่หาย" ในฟอร์มเก็บลงคอลัมน์ found_location / found_date
 require __DIR__ . '/includes/init.php';
 require __DIR__ . '/includes/item_helpers.php';
 require_login();
@@ -34,8 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description = $lost['description'] === '' ? null : $lost['description'];
 
         $stmt = $conn->prepare(
-            'INSERT INTO lost_items (user_id, category_id, title, description, lost_location, lost_date, image_path)
-             VALUES (?, ?, ?, ?, ?, ?, ?)'
+            "INSERT INTO lf_items (post_type, user_id, category_id, title, description, found_location, found_date, image_path)
+             VALUES ('lost', ?, ?, ?, ?, ?, ?, ?)"
         );
         $stmt->bind_param('iisssss', $uid, $lost['category_id'], $lost['title'], $description,
             $lost['lost_location'], $lost['lost_date'], $image_path);

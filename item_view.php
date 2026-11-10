@@ -1,6 +1,7 @@
 <?php
 // UC03 / UC04 หน้ารายละเอียดประกาศ: ต้อง Login และเปิดได้เฉพาะประกาศของคณะเดียวกัน
 require __DIR__ . '/includes/init.php';
+require __DIR__ . '/includes/matching.php';
 require_login();
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -13,13 +14,13 @@ $stmt = $conn->prepare(
             cl.full_name AS claimer_name, cl.student_id AS claimer_student_id,
             cl.phone AS claimer_phone, cl.line_id AS claimer_line,
             r.full_name AS receiver_name, r.student_id AS receiver_student_id
-     FROM items i
-     JOIN categories c ON c.id = i.category_id
-     JOIN users f ON f.id = i.user_id
-     LEFT JOIN pickup_points p ON p.id = i.pickup_point_id
-     LEFT JOIN users cl ON cl.id = i.claimed_by
-     LEFT JOIN users r ON r.id = i.returned_to
-     WHERE i.id = ? AND SUBSTRING(f.student_id, 3, 2) = ?'
+     FROM lf_items i
+     JOIN lf_categories c ON c.id = i.category_id
+     JOIN lf_users f ON f.id = i.user_id
+     LEFT JOIN lf_pickup_points p ON p.id = i.pickup_point_id
+     LEFT JOIN lf_users cl ON cl.id = i.claimed_by
+     LEFT JOIN lf_users r ON r.id = i.returned_to
+     WHERE i.id = ? AND i.post_type = \'found\' AND SUBSTRING(f.student_id, 3, 2) = ?'
 );
 $stmt->bind_param('is', $id, $faculty);
 $stmt->execute();
@@ -32,6 +33,7 @@ if (!$item) {
 $uid = current_user_id();
 $is_owner = $uid === (int)$item['user_id'];
 $is_claimer = $uid === (int)$item['claimed_by'];
+$matches = find_matches($conn, (int)$item['id'], $faculty);
 
 $page_title = $item['title'];
 require __DIR__ . '/includes/header.php';
@@ -113,7 +115,7 @@ require __DIR__ . '/includes/header.php';
                     <p class="fw-semibold mb-1">มีผู้ขอรับคืน: <?= e($item['claimer_name']) ?> (<?= e($item['claimer_student_id']) ?>)</p>
                     <?php if ($item['claimer_phone']): ?><p class="mb-0 small">โทร: <?= e($item['claimer_phone']) ?></p><?php endif; ?>
                     <?php if ($item['claimer_line']): ?><p class="mb-0 small">LINE ID: <?= e($item['claimer_line']) ?></p><?php endif; ?>
-                    <p class="small mt-2 mb-2">ตรวจสอบว่าเป็นเจ้าของจริงก่อนส่งของ แล้วกดยืนยันเมื่อคืนเรียบร้อย</p>
+                    <p class="small mt-2 mb-2">ก่อนส่งของ ขอดูบัตรนิสิตตัวจริงแล้วเทียบชื่อกับรหัสนิสิตด้านบน เมื่อคืนเรียบร้อยให้กดยืนยัน ระบบจะบันทึกบัญชีนี้เป็นผู้รับของ</p>
                     <div class="d-flex flex-wrap gap-2">
                         <form method="post" action="item_return.php" onsubmit="return confirm('ยืนยันว่าคืนของให้ผู้ขอรับเรียบร้อยแล้ว?');">
                             <?= csrf_field() ?>
@@ -157,4 +159,5 @@ require __DIR__ . '/includes/header.php';
         <?php endif; ?>
     </div>
 </div>
+<?php require __DIR__ . '/includes/match_cards.php'; ?>
 <?php require __DIR__ . '/includes/footer.php'; ?>
